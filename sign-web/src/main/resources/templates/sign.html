@@ -1,0 +1,161 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>签到页面</title>
+<link rel="stylesheet" href="/css/sign.css" />
+<script src="../js/jq3.3.1min.js"></script>
+<script type="text/javascript" src="http://api.map.baidu.com/api?ak=IF3g1wsZPYgqbh0rlfaqVd5RKZDmcfKY&v=2.0&services=false"></script>
+
+</head>
+
+<body>
+<div class="login">
+	<div class="welcome"><img src="./images/welcome.png"></div>
+	<div class="login-form">
+		<div class="login-inp"><label >学号</label><input type="text" placeholder="" id="id"></div>
+		<div class="login-inp"><label >姓名</label><input type="text" placeholder="" id="name"></div>
+		<div class="login-inp" onclick="sign()"><a href="#" >点击签到</a></div>
+		<div id="allmap"></div>
+	</div>
+<!--	<div class="login-txt"><a href="#">立即注册</a>|<a href="#">忘记密码？</a></div>-->
+	<div class="time" id="time"></div>
+
+	<div id="location">
+		位置
+	</div>
+</div>
+<script>
+	var myLocation ;
+	var map = new BMap.Map("allmap");
+	var point = new BMap.Point(116.501573, 39.900877);
+	map.centerAndZoom(point, 16)
+	var geoc = new BMap.Geocoder();
+	var geolocation = new BMap.Geolocation();
+	//页面加载调用
+	window.onload=function(){
+		//每1秒刷新时间
+		setInterval("NowTime()",1000);
+
+
+
+		//getLocation();
+		getLocation2();
+	}
+
+function getLocation() {
+
+// 此处二种方案可选其一，自测方案2更准确，1和2的方案，大致位置来讲都是准的
+// 定位对象方案1 : 百度获取经纬度
+	geolocation.getCurrentPosition(function(r){
+		if(this.getStatus() == BMAP_STATUS_SUCCESS){
+			var mk = new BMap.Marker(r.point);
+			map.addOverlay(mk);
+			map.panTo(r.point);
+			//alert("当前位置经度为:"+r.point.lng+"纬度为:"+r.point.lat);
+			setLocation(r.point);
+		} else {
+			console.log('无法定位到您的当前位置，导航失败，请手动输入您的当前位置！'+this.getStatus());
+		}
+	},{enableHighAccuracy: true});
+}
+	// 定位对象方案2：geolocation获取经纬度
+	function getLocation2(){
+		navigator.geolocation.getCurrentPosition(function(pos) {
+			<!-- pos 的出参 -->
+			<!-- {speed: "-1.000000", longitude: "121.451945", latitude: "31.184739", accuracy: "65.000000", timestamp: "2018-06-27 07:12:33 +0000", …} -->
+			var point = new BMap.Point(pos.coords.longitude, pos.coords.latitude);
+			//alert(pos.coords.longitude+","+pos.coords.latitude)
+			setLocation(point);
+		}, function(err) {
+			console.log(err,'err----')
+		})
+	}
+	//获取地理位置的函数
+	function setLocation(point){
+		geoc.getLocation(point, function(rs){
+			var addComp = rs.addressComponents;
+			var result = addComp.province + addComp.city + addComp.district + addComp.street + addComp.streetNumber;
+			//$("#start").val(result);
+			//$("#start_location").val(result);
+			//alert("当前的位置为:"+result);
+			console.log(addComp);
+			myLocation = result;
+		});
+	}
+
+
+
+
+
+
+
+
+	function NowTime(){
+		//获取年月日
+		var time=new Date();
+		var year=time.getFullYear();
+		var month=time.getMonth();
+		var day=time.getDate();
+
+		//获取时分秒
+		var h=time.getHours();
+		var m=time.getMinutes();
+		var s=time.getSeconds();
+
+		//检查是否小于10
+		h=check(h);
+		m=check(m);
+		s=check(s);
+		// year+"/"+month+"/"+day+" "+
+		document.getElementById("time").innerHTML=h+":"+m+":"+s;
+	}
+	//时间数字小于10，则在之前加个“0”补位。
+	function check(i){
+		//方法一，用三元运算符
+		var num;
+		i<10?num="0"+i:num=i;
+		return num;
+
+		//方法二，if语句判断
+		//if(i<10){
+		//    i="0"+i;
+		//}
+		//return i;
+	}
+	function sign(){
+		//学号
+		var id = $("#id").val();
+		//姓名
+		var name =  $("#name").val();
+		if(id.length==0||name.length==0){
+			alert("学号和姓名均不能为空！");
+			return;
+		}
+		//位置
+		$.ajax({
+			url : "/addSign",
+			type : 'POST',
+			timeout:2000,
+			dataType : 'json',
+			data:{"id":id,"name":name,"location":myLocation},
+			success : function(data) {
+				if(data.status==200){
+					alert(data.body);
+				}else{
+					alert("系统出错请联系管理员")
+				}
+
+			},
+			error : function(msg) {
+				alert("系统出错请联系管理员")
+			}
+		});
+
+	}
+</script>
+<script type="text/javascript">
+</script>
+</body>
+</html>
